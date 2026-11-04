@@ -1,7 +1,7 @@
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from rdkit.Chem import rdMolDraw2D
+from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
 from rdkit.Chem import Crippen
 

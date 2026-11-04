@@ -1,4 +1,5 @@
 streamlit
+rdkit
 numpy
 matplotlib
 qiskit

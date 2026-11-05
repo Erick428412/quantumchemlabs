@@ -3,5 +3,5 @@ rdkit
 numpy
 matplotlib
 qiskit
-qiskit[visualization]
+qiskit-aer
 pylatexenc

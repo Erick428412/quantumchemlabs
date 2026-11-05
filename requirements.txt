@@ -1,7 +1,7 @@
 streamlit
-rdkit
-numpy
+rdkit==2023.9.5
+numpy<2.0.0
 matplotlib
-qiskit
-qiskit-aer
+qiskit>=1.0.0
 pylatexenc
+

@@ -208,8 +208,49 @@ try:
         with tab7:
             col1, col2 = st.columns(2)
             with col1:
-                st.subheader("Todavia en proceso")
-                st.write("Esta parte aun sigue en proceso")
+                st.subheader("Creador de circuitos cuanticos")
+                st.write("Crea tu circuito cuantico")
+                num_qubits = st.sidebar.slider("Número de Cúbits", min_value=1, max_value=5, value=3)
+
+                # Inicializar el circuito con los cúbits seleccionados
+                qc = QuantumCircuit(num_qubits)
+
+                # 2. Controles interactivos en la barra lateral para añadir compuertas
+                st.sidebar.subheader("Añadir Compuertas")
+
+                # Compuertas Hadamard (H)
+                if st.sidebar.checkbox("Añadir compuertas Hadamard (H)"):
+                    qubits_h = st.sidebar.multiselect("¿En qué cúbits aplicar H?", list(range(num_qubits)), default=[0])
+                    for q in qubits_h:
+                        qc.h(q)
+
+                # Compuertas Pauli-X (NOT)
+                if st.sidebar.checkbox("Añadir compuertas Pauli-X (NOT)"):
+                    qubits_x = st.sidebar.multiselect("¿En qué cúbits aplicar X?", list(range(num_qubits)))
+                    for q in qubits_x:
+                        qc.x(q)
+
+                # Compuertas CNOT (Controlled-NOT)
+                if num_qubits > 1 and st.sidebar.checkbox("Añadir compuerta CNOT"):
+                    control = st.sidebar.selectbox("Cúbit de Control", list(range(num_qubits)), index=0)
+                    target = st.sidebar.selectbox("Cúbit Objetivo", [q for q in range(num_qubits) if q != control], index=0)
+                    qc.cx(control, target)
+
+                # Medición final
+                if st.sidebar.checkbox("Añadir mediciones al final"):
+                    qc.measure_all()
+
+                # 3. Renderizar el circuito en la pantalla principal
+                st.subheader("Circuito Resultante")
+
+                try:
+                    # Generamos la figura de Matplotlib
+                    fig = qc.draw(output='mpl', style='iqp')
+                    # La mostramos en Streamlit
+                    st.pyplot(fig)
+                except Exception as e:
+                    st.error(f"Hubo un error al dibujar el circuito: {e}")
+                    st.info("Asegúrate de tener instalado el paquete de visualización: `pip install qiskit[visualization]`")  
             with col2:
                 st.write("Software creado por Erick Lopez")
 except Exception as e:

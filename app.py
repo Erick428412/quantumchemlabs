@@ -12,6 +12,7 @@ import quimica
 # Configuración de la página
 st.set_page_config(page_title="Quantum Chemistry Labs", layout="wide")
 st.title("Bienvenido a QuantumChemLabs")
+st.write("Escribe en el campo de texto la molecula que desees analizar, se muestra un ejemplo en pantalla")
 
 def render_mol_local(mol, width=600, height=350):
     svg = quimica.get_mol_svg(mol, width, height)

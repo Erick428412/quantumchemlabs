@@ -3,6 +3,8 @@ import streamlit.components.v1 as components
 from rdkit import Chem
 import numpy as np
 import matplotlib.pyplot as plt
+import streamlit as st
+from qiskit import QuantumCircuit
 
 # IMPORTAMOS EL CEREBRO QUÍMICO QUE ACABAMOS DE CREAR
 import quimica 

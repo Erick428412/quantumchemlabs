@@ -52,6 +52,8 @@ def identificar_molecula(smiles):
 
         "masa_exacta": rdMolDescriptors.CalcExactMolWt(mol),
 
+        "atomos": mol.GetNumAtoms(),
+
         "atomos_totales": mol.GetNumAtoms(),
 
         "atomos_pesados": mol.GetNumHeavyAtoms(),

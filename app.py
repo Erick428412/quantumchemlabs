@@ -1,4 +1,4 @@
-
+from rdkit.Chem import Crippen
 import streamlit as st
 import streamlit.components.v1 as components
 import numpy as np
@@ -9,7 +9,6 @@ from rdkit.Chem import rdMolDescriptors
 from qiskit import QuantumCircuit
 
 import quimica
-from biochem.identificacion import identificar_molecula
 from biochem.adme import analizar_adme
 
 
@@ -117,7 +116,7 @@ with tab_quimica:
             # --------------------------------------------------
 
             sub_quimica = st.tabs([
-                "📊 Información e Isomería",
+                "⚛️ Descriptores Fisicoquímicos",
                 "🌡️ Propiedades Físicas",
                 "🧭 Polaridad",
                 "💧 Solubilidad",
@@ -214,110 +213,37 @@ with tab_quimica:
             # PROPIEDADES FÍSICAS
             # --------------------------------------------------
 
+            
             with sub_quimica[1]:
 
-                st.subheader("Estimación de propiedades físicas")
+                st.subheader("⚛️ Descriptores fisicoquímicos")
 
-                est_boiling_c, est_melting_c, mw, logp, h_donors = (
-                    quimica.calcular_propiedades_fisicas(mol_activa)
+                peso_molecular = rdMolDescriptors.CalcExactMolWt(mol_activa)
+                logp = Crippen.MolLogP(mol_activa)
+                tpsa = rdMolDescriptors.CalcTPSA(mol_activa)
+                donadores = rdMolDescriptors.CalcNumHBD(mol_activa)
+                aceptores = rdMolDescriptors.CalcNumHBA(mol_activa)
+                enlaces_rotables = rdMolDescriptors.CalcNumRotatableBonds(mol_activa)
+
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric("Peso molecular", f"{peso_molecular:.3f} g/mol")
+                col2.metric("LogP", f"{logp:.3f}")
+                col3.metric("TPSA", f"{tpsa:.3f} Å²")
+
+                col4, col5, col6 = st.columns(3)
+
+                col4.metric("Donadores H", donadores)
+                col5.metric("Aceptores H", aceptores)
+                col6.metric("Enlaces rotables", enlaces_rotables)
+
+                st.info(
+                    "Estos son descriptores moleculares calculados "
+                    "computacionalmente. No representan mediciones "
+                    "experimentales de puntos de fusión, ebullición "
+                    "o viscosidad."
                 )
 
-                col1, col2 = st.columns(2)
-
-                col1.metric(
-                    "Punto de ebullición estimado",
-                    f"{est_boiling_c:.1f} °C"
-                )
-
-                col2.metric(
-                    "Punto de fusión estimado",
-                    f"{est_melting_c:.1f} °C"
-                )
-
-                st.caption(
-                    "Estimaciones heurísticas, no valores experimentales."
-                )
-
-                st.divider()
-
-                st.subheader("📈 Curva dinámica de viscosidad")
-
-                t_min = float(max(0.0, est_melting_c + 5))
-                t_max = float(est_boiling_c - 5)
-
-                if t_max > t_min:
-
-                    temp_seleccionada_c = st.slider(
-                        "🌡️ Temperatura de trabajo (°C):",
-                        min_value=t_min,
-                        max_value=t_max,
-                        value=(t_min + t_max) / 2.0,
-                        step=1.0
-                    )
-
-                    (
-                        temp_c_range,
-                        viscosidad_cps,
-                        E_visc,
-                        R,
-                        A_visc
-                    ) = quimica.calcular_perfil_viscosidad(
-                        mw,
-                        h_donors,
-                        t_min,
-                        t_max
-                    )
-
-                    visc_exacta = A_visc * np.exp(
-                        E_visc / (
-                            R * (temp_seleccionada_c + 273.15)
-                        )
-                    )
-
-                    st.metric(
-                        f"Viscosidad a {temp_seleccionada_c:.1f} °C",
-                        f"{visc_exacta:.4f} cP"
-                    )
-
-                    fig, ax = plt.subplots(figsize=(8, 3.5))
-
-                    fig.patch.set_facecolor("#0e1117")
-                    ax.set_facecolor("#1e1e1e")
-
-                    ax.plot(
-                        temp_c_range,
-                        viscosidad_cps,
-                        color="#ff4b4b",
-                        linewidth=2.5
-                    )
-
-                    ax.plot(
-                        temp_seleccionada_c,
-                        visc_exacta,
-                        marker="o",
-                        markersize=9,
-                        color="#00b4d8"
-                    )
-
-                    ax.axvline(
-                        x=temp_seleccionada_c,
-                        color="#00b4d8",
-                        linestyle=":"
-                    )
-
-                    ax.set_xlabel("Temperatura (°C)", color="white")
-                    ax.set_ylabel("Viscosidad (cP)", color="white")
-                    ax.tick_params(colors="white")
-                    ax.grid(True, linestyle="--", alpha=0.2)
-
-                    st.pyplot(fig)
-                    plt.close(fig)
-
-                else:
-                    st.warning(
-                        "No existe un intervalo válido para "
-                        "mostrar la curva de viscosidad."
-                    )
 
             # --------------------------------------------------
             # POLARIDAD
@@ -717,47 +643,7 @@ with tab_biologia:
     # IDENTIFICACIÓN MOLECULAR
     # ------------------------------------------------------
 
-    st.subheader("🔬 Identificación química")
-
-    if st.button("Identificar molécula", key="btn_identificar"):
-
-        try:
-
-            datos = identificar_molecula(smiles_input)
-
-            col1, col2, col3 = st.columns(3)
-
-            col1.metric(
-                "Fórmula",
-                datos["formula"]
-            )
-
-            col2.metric(
-                "Peso molecular",
-                f'{datos["peso_molecular"]:.3f} g/mol'
-            )
-
-            col3.metric(
-                "Átomos",
-                datos["atomos"]
-            )
-
-            with st.expander("Ver información completa"):
-
-                st.json(datos)
-
-            st.info(
-                "La identificación química no implica "
-                "una evaluación de seguridad biológica."
-            )
-
-        except (ValueError, TypeError, KeyError) as e:
-
-            st.error(
-                f"Error en la identificación: {e}"
-            )
-
-    st.divider()
+    # Se elimina
 
     # ------------------------------------------------------
     # ADME

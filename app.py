@@ -1,387 +1,899 @@
-from biochem.identificacion import identificar_molecula
-from biochem.adme import analizar_adme
+
 import streamlit as st
 import streamlit.components.v1 as components
-from rdkit import Chem
 import numpy as np
 import matplotlib.pyplot as plt
-import streamlit as st
+
+from rdkit import Chem
+from rdkit.Chem import rdMolDescriptors
 from qiskit import QuantumCircuit
 
-# IMPORTAMOS EL CEREBRO QUÍMICO QUE ACABAMOS DE CREAR
-import quimica 
+import quimica
+from biochem.identificacion import identificar_molecula
+from biochem.adme import analizar_adme
 
-# Configuración de la página
-st.set_page_config(page_title="Quantum Chemistry Labs", layout="wide")
-st.title("Bienvenido a QuantumChemLabs")
-st.write("Escribe en el campo de texto la molecula que desees analizar, se muestra un ejemplo en pantalla")
+
+# ==========================================================
+# CONFIGURACIÓN GENERAL
+# ==========================================================
+
+st.set_page_config(
+    page_title="QuantumChemLabs",
+    page_icon="🧪",
+    layout="wide"
+)
+
+st.title("🧬 QuantumChemLabs")
+st.write(
+    "Plataforma de análisis químico, computación cuántica "
+    "y biología computacional."
+)
+
+
+# ==========================================================
+# FUNCIONES AUXILIARES
+# ==========================================================
 
 def render_mol_local(mol, width=600, height=350):
+    """Renderiza una molécula utilizando RDKit."""
+
     svg = quimica.get_mol_svg(mol, width, height)
+
     html_content = f"""
-    <div style="display: flex; justify-content: center; align-items: center; background-color: #0e1117; padding: 10px; border-radius: 8px;">
+    <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #0e1117;
+        padding: 10px;
+        border-radius: 8px;
+    ">
         {svg}
     </div>
     """
+
     components.html(html_content, height=height + 20)
 
-# Barra lateral
-st.sidebar.header("Entrada de la Molécula")
-smiles_input = st.sidebar.text_input("Ingresa el código SMILES base:", value="C(O)=C(C)O")
 
-try:
-    isomeros_lista = quimica.generar_isomeros(smiles_input)
-    if isomeros_lista is None:
-        st.error("Código SMILES no válido. Ingresa una estructura válida.")
-    else:
-        if "isomero_seleccionado" not in st.session_state:
-            st.session_state.isomero_seleccionado = 0
-            
-        with st.expander("Isómeros Químicos Detectados", expanded=True):
-            st.write(f"Se generaron **{len(isomeros_lista)}** configuraciones moleculares:")
-            cols = st.columns(min(4, len(isomeros_lista)))
-            for idx, iso in enumerate(isomeros_lista):
-                col_idx = idx % 4
-                with cols[col_idx]:
-                    svg_iso = quimica.get_mol_svg(iso, width=220, height=160)
-                    st.components.v1.html(f"<div style='text-align:center;'>{svg_iso}</div>", height=170)
-                    if st.button(f"Inspeccionar Isómero {idx + 1}", key=f"btn_iso_{idx}"):
-                        st.session_state.isomero_seleccionado = idx
-                        st.slots = []
-                        st.rerun()
+# ==========================================================
+# BARRA LATERAL
+# ==========================================================
 
-        mol_activa = isomeros_lista[st.session_state.isomero_seleccionado]
-        mol_with_hs = Chem.AddHs(mol_activa)
-        
-        st.subheader(f"🌐 Inspección de la Estructura Seleccionada (Isómero {st.session_state.isomero_seleccionado + 1})")
-        render_mol_local(mol_with_hs)
-        
-        st.markdown("---")
-        
-        # Creación y mapeo de pestañas
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-            "📊 Información e Isomería", 
-            "🌡️ Propiedades Físicas y Viscosidad",
-            "🧭 Polaridad y Polos",
-            "💧 Solubilidad y Solventes",
-            "⚗️ Simulador de Reacciones", 
-            "⚖️ Estequiometría",
-            "🧲 Cuantica",
-            "🧬 BioChem Analyzer"
-        ])
-        
-        # --- PESTAÑA 1: INFORMACIÓN E ISOMERÍA ---
-        with tab1:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("Datos Generales")
-                st.write(f"**Fórmula Química:** {Chem.rdMolDescriptors.CalcMolFormula(mol_with_hs)}")
-                st.write(f"**Peso Molecular:** {Chem.rdMolDescriptors.CalcExactMolWt(mol_with_hs):.4f} g/mol")
-                st.write(f"**Átomos Totales:** {mol_with_hs.GetNumAtoms()}")
-            with col2:
-                st.subheader("Estereoquímica")
-                centros = Chem.FindMolChiralCenters(mol_activa, includeUnassigned=True)
-                st.write(f"**Centros Quirales en este Isómero:** {len(centros)}")
+st.sidebar.title("⚙️ Configuración")
 
-        # --- PESTAÑA 2: PROPIEDADES FÍSICAS Y VISCOSIDAD ---
-        with tab2:
-            st.subheader("Estimación de Propiedades Físicas")
-            est_boiling_c, est_melting_c, mw, logp, h_donors = quimica.calcular_propiedades_fisicas(mol_activa)
-            
-            col_f1, col_f2 = st.columns(2)
-            with col_f1: st.metric(label="Punto de Ebullición Estimado", value=f"{est_boiling_c:.1f} °C")
-            with col_f2: st.metric(label="Punto de Fusión Estimado", value=f"{est_melting_c:.1f} °C")
-                
-            st.markdown("---")
-            st.subheader("📈 Curva Dinámica de Viscosidad")
-            t_min, t_max = float(max(0.0, est_melting_c + 5)), float(est_boiling_c - 5)
-            temp_seleccionada_c = st.slider("🌡️ Temperatura de Trabajo (°C):", min_value=t_min, max_value=t_max, value=(t_min + t_max) / 2.0, step=1.0)
-            
-            temp_c_range, viscosidad_cps, E_visc, R, A_visc = quimica.calcular_perfil_viscosidad(mw, h_donors, t_min, t_max)
-            visc_exacta = A_visc * np.exp(E_visc / (R * (temp_seleccionada_c + 273.15)))
-            
-            st.metric(label=f"Viscosidad a {temp_seleccionada_c:.1f} °C", value=f"{visc_exacta:.4f} cP")
-            
-            fig, ax = plt.subplots(figsize=(8, 3.5))
-            fig.patch.set_facecolor('#0e1117')
-            ax.set_facecolor('#1e1e1e')
-            ax.plot(temp_c_range, viscosidad_cps, color='#ff4b4b', linewidth=2.5)
-            ax.plot(temp_seleccionada_c, visc_exacta, marker='o', markersize=9, color='#00b4d8')
-            ax.axvline(x=temp_seleccionada_c, color='#00b4d8', linestyle=':', alpha=0.6)
-            ax.axhline(y=visc_exacta, color='#00b4d8', linestyle=':', alpha=0.6)
-            ax.set_xlabel('Temperatura (°C)', color='white')
-            ax.set_ylabel('Viscosidad (cP)', color='white')
-            ax.tick_params(colors='white')
-            ax.grid(True, linestyle='--', alpha=0.2, color='gray')
-            st.pyplot(fig)
+st.sidebar.header("Entrada molecular")
 
-        # --- PESTAÑA 3: POLARIDAD Y POLOS ---
-        with tab3:
-            st.subheader("🧭 Análisis Vectorial de Polaridad")
-            enlaces_p_cnt, enlaces_np_cnt, es_polar, pos_x, pos_y, idx_pos, idx_neg, c_pos_x, c_pos_y, c_neg_x, c_neg_y, mol_cargas = quimica.analizar_polaridad_y_polos(mol_with_hs)
-            
-            col_b1, col_b2 = st.columns(2)
-            with col_b1: st.write(f"• Enlaces **Covalentes Polares**: `{enlaces_p_cnt}`")
-            with col_b2: st.write(f"• Enlaces **Covalentes No Polares**: `{enlaces_np_cnt}`")
-                
-            st.markdown("---")
-            st.write(f"¿La molécula es **Globalmente Polar**?: **{es_polar}**")
-            
-            fig_p, ax_p = plt.subplots(figsize=(7, 3.5))
-            fig_p.patch.set_facecolor('#0e1117')
-            ax_p.set_facecolor('#1e1e1e')
-            ax_p.scatter(pos_x, pos_y, c='#4a5568', s=100, alpha=0.5)
-            for i, atom in enumerate(mol_cargas.GetAtoms()):
-                ax_p.text(pos_x[i]+0.12, pos_y[i]+0.12, atom.GetSymbol(), color='#a0aec0', fontsize=9)
-            
-            if np.any(idx_pos): ax_p.scatter(c_pos_x, c_pos_y, c='#ff4b4b', s=350, marker='P', label='Polo δ+')
-            if np.any(idx_neg): ax_p.scatter(c_neg_x, c_neg_y, c='#00b4d8', s=350, marker='o', label='Polo δ-')
-            
-            if es_polar == "SÍ":
-                ax_p.arrow(c_pos_x, c_pos_y, c_neg_x - c_pos_x, c_neg_y - c_pos_y, head_width=0.15, head_length=0.15, fc='#ffb703', ec='#ffb703', length_includes_head=True, linewidth=2.5)
-                           
-            ax_p.set_title('🗺️ Mapa de Polos Eléctricos', color='white', fontweight='bold')
-            ax_p.tick_params(colors='white')
-            ax_p.axis('equal')
-            st.pyplot(fig_p)
+smiles_input = st.sidebar.text_input(
+    "Ingresa el código SMILES:",
+    value="C(O)=C(C)O"
+)
 
-        # --- PESTAÑA 4: SOLUBILIDAD Y SOLVENTES ---
-        with tab4:
-            st.subheader("💧 Predicción de Solubilidad en Sistemas de Solventes")
-            _, _, _, logp_val, _ = quimica.calcular_propiedades_fisicas(mol_activa)
-            
-            if logp_val < 0:
-                perfil_quimico = "Altamente Hidrofílico"
-                desc_solubilidad = "Se disuelve de forma excelente en agua debido a interacciones dipolo-dipolo fuertes."
-            elif 0 <= logp_val <= 3:
-                perfil_quimico = "Anfipático / Polaridad Moderada"
-                desc_solubilidad = "Solubilidad equilibrada en sistemas acuosos y orgánicos."
-            else:
-                perfil_quimico = "Altamente Lipofílico / Hidrofóbico"
-                desc_solubilidad = "Insoluble o muy poco soluble en agua. Alta afinidad por solventes no polares."
 
-            col_s1, col_s2 = st.columns(2)
-            with col_s1:
-                st.metric(label="Descriptor LogP (Crippen)", value=f"{logp_val:.3f}")
-                st.write(f"**Perfil Químico:** {perfil_quimico}")
-                st.write(f"**Comportamiento:** {desc_solubilidad}")
-            
-            with col_s2:
-                fig_s, ax_s = plt.subplots(figsize=(6, 1.8))
-                fig_s.patch.set_facecolor('#0e1117')
-                ax_s.set_facecolor('#1e1e1e')
-                ax_s.axvspan(-3, 0, color='#00b4d8', alpha=0.3, label='Hidrofílico')
-                ax_s.axvspan(0, 3, color='#4cc9f0', alpha=0.15, label='Moderado')
-                ax_s.axvspan(3, 6, color='#ffb703', alpha=0.3, label='Lipofílico')
-                ax_s.axvline(x=logp_val, color='#ff4b4b', linewidth=3, linestyle='--')
-                ax_s.plot(logp_val, 0, marker='v', color='#ff4b4b', markersize=12, label='Tu Molécula')
-                ax_s.set_xlim(-3, 6)
-                ax_s.set_ylim(-0.5, 0.5)
-                ax_s.set_xlabel('Escala LogP', color='white', fontsize=9)
-                ax_s.get_yaxis().set_visible(False)
-                ax_s.tick_params(colors='white', labelsize=8)
-                st.pyplot(fig_s)
+# ==========================================================
+# PESTAÑAS PRINCIPALES
+# ==========================================================
 
-            st.markdown("---")
-            st.write("#### 🧪 Matriz de Solubilidad Estimada por Solvente")
-            solv_agua = max(5, min(100, int((1 - (logp_val / 4.0)) * 100))) if logp_val >= 0 else 100
-            solv_etanol = max(10, min(100, int((1 - (abs(logp_val - 0.5) / 5.0)) * 100)))
-            solv_acetona = max(10, min(100, int((1 - (abs(logp_val - 1.5) / 5.0)) * 100)))
-            solv_cloroformo = max(5, min(100, int((1 - (abs(logp_val - 2.5) / 5.0)) * 100)))
-            solv_hexano = max(5, min(100, int((logp_val / 5.0) * 100))) if logp_val >= 0 else 5
+tab_quimica, tab_cuantica, tab_biologia = st.tabs([
+    "🧪 Química",
+    "⚛️ Cuántica",
+    "🧬 Biología"
+])
 
-            col_sol1, col_sol2, col_sol3, col_sol4, col_sol5 = st.columns(5)
-            for col, name, val in zip([col_sol1, col_sol2, col_sol3, col_sol4, col_sol5], ["Agua", "Etanol", "Acetona", "Cloroformo", "Hexano"], [solv_agua, solv_etanol, solv_acetona, solv_cloroformo, solv_hexano]):
-                with col:
-                    st.write(f"{name}")
-                    st.progress(val / 100.0)
-                    st.caption(f"{val}%")
-        # --- PESTAÑA 5: REACCIONES ---
-        with tab5:
-            st.subheader("Predecir Reacción Química")
-            tipo_reaccion = st.selectbox("Elige la reacción:", ["Combustión Completa (con O₂)", "Hidrogenación Catalítica"])
-            if st.button("Ejecutar Reacción"):
-                if tipo_reaccion == "Combustión Completa (con O₂)":
-                    st.success("🔥 ¡Combustión simulada con éxito!")
-                    st.write("Productos: $CO_2$ + $H_2O$")
-            else:
-                st.info("Buscando enlaces insaturados en este isómero específico...")
-        # --- PESTAÑA 6: ESTEQUIOMETRÍA ---
-        with tab6:
-            st.subheader("Calculadora de Laboratorio")
-            gramos = st.number_input("Masa en gramos (g):", min_value=0.01, value=10.0)
-            st.metric(label="Moles Resultantes", value=f"{gramos / Chem.rdMolDescriptors.CalcExactMolWt(mol_with_hs):.4f} mol")
-        with tab7:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("Creador de circuitos cuanticos")
-                st.write("Crea tu circuito cuantico")
-                num_qubits = st.sidebar.slider("Número de Cúbits", min_value=1, max_value=5, value=3)
 
-                # Inicializar el circuito con los cúbits seleccionados
-                qc = QuantumCircuit(num_qubits)
+# ==========================================================
+# 1. LABORATORIO DE QUÍMICA
+# ==========================================================
 
-                # 2. Controles interactivos en la barra lateral para añadir compuertas
-                st.sidebar.subheader("Añadir Compuertas")
+with tab_quimica:
 
-                # Compuertas Hadamard (H)
-                if st.sidebar.checkbox("Añadir compuertas Hadamard (H)"):
-                    qubits_h = st.sidebar.multiselect("¿En qué cúbits aplicar H?", list(range(num_qubits)), default=[0])
-                    for q in qubits_h:
-                        qc.h(q)
+    st.header("🧪 Laboratorio de Química")
 
-                # Compuertas Pauli-X (NOT)
-                if st.sidebar.checkbox("Añadir compuertas Pauli-X (NOT)"):
-                    qubits_x = st.sidebar.multiselect("¿En qué cúbits aplicar X?", list(range(num_qubits)))
-                    for q in qubits_x:
-                        qc.x(q)
+    try:
+        isomeros_lista = quimica.generar_isomeros(smiles_input)
 
-                # Compuertas CNOT (Controlled-NOT)
-                if num_qubits > 1 and st.sidebar.checkbox("Añadir compuerta CNOT"):
-                    control = st.sidebar.selectbox("Cúbit de Control", list(range(num_qubits)), index=0)
-                    target = st.sidebar.selectbox("Cúbit Objetivo", [q for q in range(num_qubits) if q != control], index=0)
-                    qc.cx(control, target)
+        if isomeros_lista is None or len(isomeros_lista) == 0:
 
-                # Medición final
-                if st.sidebar.checkbox("Añadir mediciones al final"):
-                    qc.measure_all()
-
-                # 3. Renderizar el circuito en la pantalla principal
-                st.subheader("Circuito Resultante")
-
-                try:
-                    # Generamos la figura de Matplotlib
-                    fig = qc.draw(output='mpl', style='iqp')
-                    # La mostramos en Streamlit
-                    st.pyplot(fig)
-                except Exception as e:
-                    st.error(f"Hubo un error al dibujar el circuito: {e}")
-                    st.info("Asegúrate de tener instalado el paquete de visualización: `pip install qiskit[visualization]`")  
-            with col2:
-                st.write("Software creado por Erick Lopez")
-        with tab8:
-            st.header("🧬 BioChem Analyzer")
-
-            st.write(
-                "Evaluación computacional y documental "
-                "de propiedades biológicas moleculares."
+            st.error(
+                "Código SMILES no válido. "
+                "Ingresa una estructura molecular válida."
             )
 
-            # Identificación molecular
-            st.subheader("Identificación química")
+        else:
 
-            if st.button("Identificar molécula"):
-                try:
-                    datos = identificar_molecula(smiles_input)
+            # Reiniciar selección si cambia el SMILES
+            if st.session_state.get("ultimo_smiles") != smiles_input:
+                st.session_state.ultimo_smiles = smiles_input
+                st.session_state.isomero_seleccionado = 0
 
-                    col1, col2, col3 = st.columns(3)
+            # Evitar índices fuera de rango
+            if (
+                st.session_state.isomero_seleccionado
+                >= len(isomeros_lista)
+            ):
+                st.session_state.isomero_seleccionado = 0
 
-                    col1.metric("Fórmula", datos["formula"])
-                    col2.metric(
-                        "Peso molecular",
-                        f'{datos["peso_molecular"]:.3f} g/mol'
+            # --------------------------------------------------
+            # SUBPESTAÑAS DE QUÍMICA
+            # --------------------------------------------------
+
+            sub_quimica = st.tabs([
+                "📊 Información e Isomería",
+                "🌡️ Propiedades Físicas",
+                "🧭 Polaridad",
+                "💧 Solubilidad",
+                "⚗️ Reacciones",
+                "⚖️ Estequiometría"
+            ])
+
+            # --------------------------------------------------
+            # MOLÉCULA E ISÓMEROS
+            # --------------------------------------------------
+
+            with sub_quimica[0]:
+
+                st.subheader("Isómeros químicos detectados")
+
+                st.write(
+                    f"Se generaron **{len(isomeros_lista)}** "
+                    "configuraciones moleculares."
+                )
+
+                cols = st.columns(min(4, len(isomeros_lista)))
+
+                for idx, iso in enumerate(isomeros_lista):
+
+                    with cols[idx % 4]:
+
+                        svg_iso = quimica.get_mol_svg(
+                            iso,
+                            width=220,
+                            height=160
+                        )
+
+                        components.html(
+                            f"<div style='text-align:center;'>{svg_iso}</div>",
+                            height=170
+                        )
+
+                        if st.button(
+                            f"Inspeccionar Isómero {idx + 1}",
+                            key=f"btn_iso_{idx}"
+                        ):
+                            st.session_state.isomero_seleccionado = idx
+                            st.rerun()
+
+                mol_activa = isomeros_lista[
+                    st.session_state.isomero_seleccionado
+                ]
+
+                mol_with_hs = Chem.AddHs(mol_activa)
+
+                st.divider()
+
+                st.subheader(
+                    "🌐 Estructura seleccionada "
+                    f"(Isómero {st.session_state.isomero_seleccionado + 1})"
+                )
+
+                render_mol_local(mol_with_hs)
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.subheader("Datos generales")
+
+                    st.write(
+                        "**Fórmula química:**",
+                        rdMolDescriptors.CalcMolFormula(mol_with_hs)
                     )
-                    col3.metric("Átomos", datos["atomos"])
 
-                    st.json(datos)
-
-                    st.info(
-                        "La identificación química no implica una "
-                        "evaluación de seguridad biológica."
+                    st.write(
+                        "**Peso molecular:**",
+                        f"{rdMolDescriptors.CalcExactMolWt(mol_with_hs):.4f} g/mol"
                     )
 
-                except (ValueError, TypeError, KeyError) as e:
-                    st.error(f"Error en la identificación: {e}")
+                    st.write(
+                        "**Átomos totales:**",
+                        mol_with_hs.GetNumAtoms()
+                    )
 
-            st.divider()
+                with col2:
+                    st.subheader("Estereoquímica")
 
-            # Análisis ADME
-            st.subheader("🧪 Análisis ADME")
+                    centros = Chem.FindMolChiralCenters(
+                        mol_activa,
+                        includeUnassigned=True
+                    )
 
-            if st.button("Ejecutar análisis ADME"):
-                try:
-                    resultado_adme = analizar_adme(smiles_input)
+                    st.write(
+                        "**Centros quirales:**",
+                        len(centros)
+                    )
 
-                    if resultado_adme["estado"] == "correcto":
+            # --------------------------------------------------
+            # PROPIEDADES FÍSICAS
+            # --------------------------------------------------
 
-                        propiedades = resultado_adme["propiedades"]
+            with sub_quimica[1]:
 
-                        st.markdown("### Propiedades moleculares")
+                st.subheader("Estimación de propiedades físicas")
 
-                        col1, col2, col3 = st.columns(3)
+                est_boiling_c, est_melting_c, mw, logp, h_donors = (
+                    quimica.calcular_propiedades_fisicas(mol_activa)
+                )
 
-                        col1.metric(
-                            "Peso molecular",
-                            propiedades["peso_molecular"]
+                col1, col2 = st.columns(2)
+
+                col1.metric(
+                    "Punto de ebullición estimado",
+                    f"{est_boiling_c:.1f} °C"
+                )
+
+                col2.metric(
+                    "Punto de fusión estimado",
+                    f"{est_melting_c:.1f} °C"
+                )
+
+                st.caption(
+                    "Estimaciones heurísticas, no valores experimentales."
+                )
+
+                st.divider()
+
+                st.subheader("📈 Curva dinámica de viscosidad")
+
+                t_min = float(max(0.0, est_melting_c + 5))
+                t_max = float(est_boiling_c - 5)
+
+                if t_max > t_min:
+
+                    temp_seleccionada_c = st.slider(
+                        "🌡️ Temperatura de trabajo (°C):",
+                        min_value=t_min,
+                        max_value=t_max,
+                        value=(t_min + t_max) / 2.0,
+                        step=1.0
+                    )
+
+                    (
+                        temp_c_range,
+                        viscosidad_cps,
+                        E_visc,
+                        R,
+                        A_visc
+                    ) = quimica.calcular_perfil_viscosidad(
+                        mw,
+                        h_donors,
+                        t_min,
+                        t_max
+                    )
+
+                    visc_exacta = A_visc * np.exp(
+                        E_visc / (
+                            R * (temp_seleccionada_c + 273.15)
                         )
-                        col2.metric("LogP", propiedades["logp"])
-                        col3.metric("TPSA", propiedades["tpsa"])
+                    )
 
-                        col4, col5, col6 = st.columns(3)
+                    st.metric(
+                        f"Viscosidad a {temp_seleccionada_c:.1f} °C",
+                        f"{visc_exacta:.4f} cP"
+                    )
 
-                        col4.metric(
-                            "Donadores H",
-                            propiedades["donadores_h"]
-                        )
-                        col5.metric(
-                            "Aceptores H",
-                            propiedades["aceptores_h"]
-                        )
-                        col6.metric(
-                            "Enlaces rotables",
-                            propiedades["enlaces_rotables"]
-                        )
+                    fig, ax = plt.subplots(figsize=(8, 3.5))
 
-                        st.markdown("### Evaluación de reglas")
+                    fig.patch.set_facecolor("#0e1117")
+                    ax.set_facecolor("#1e1e1e")
 
-                        lipinski = resultado_adme["lipinski"]
-                        veber = resultado_adme["veber"]
+                    ax.plot(
+                        temp_c_range,
+                        viscosidad_cps,
+                        color="#ff4b4b",
+                        linewidth=2.5
+                    )
+
+                    ax.plot(
+                        temp_seleccionada_c,
+                        visc_exacta,
+                        marker="o",
+                        markersize=9,
+                        color="#00b4d8"
+                    )
+
+                    ax.axvline(
+                        x=temp_seleccionada_c,
+                        color="#00b4d8",
+                        linestyle=":"
+                    )
+
+                    ax.set_xlabel("Temperatura (°C)", color="white")
+                    ax.set_ylabel("Viscosidad (cP)", color="white")
+                    ax.tick_params(colors="white")
+                    ax.grid(True, linestyle="--", alpha=0.2)
+
+                    st.pyplot(fig)
+                    plt.close(fig)
+
+                else:
+                    st.warning(
+                        "No existe un intervalo válido para "
+                        "mostrar la curva de viscosidad."
+                    )
+
+            # --------------------------------------------------
+            # POLARIDAD
+            # --------------------------------------------------
+
+            with sub_quimica[2]:
+
+                st.subheader("🧭 Análisis vectorial de polaridad")
+
+                (
+                    enlaces_p_cnt,
+                    enlaces_np_cnt,
+                    es_polar,
+                    pos_x,
+                    pos_y,
+                    idx_pos,
+                    idx_neg,
+                    c_pos_x,
+                    c_pos_y,
+                    c_neg_x,
+                    c_neg_y,
+                    mol_cargas
+                ) = quimica.analizar_polaridad_y_polos(mol_with_hs)
+
+                col1, col2 = st.columns(2)
+
+                col1.write(
+                    f"Enlaces covalentes polares: **{enlaces_p_cnt}**"
+                )
+
+                col2.write(
+                    f"Enlaces covalentes no polares: **{enlaces_np_cnt}**"
+                )
+
+                st.divider()
+
+                st.write(
+                    f"¿La molécula es globalmente polar?: **{es_polar}**"
+                )
+
+                fig_p, ax_p = plt.subplots(figsize=(7, 3.5))
+
+                fig_p.patch.set_facecolor("#0e1117")
+                ax_p.set_facecolor("#1e1e1e")
+
+                ax_p.scatter(
+                    pos_x,
+                    pos_y,
+                    c="#4a5568",
+                    s=100,
+                    alpha=0.5
+                )
+
+                for i, atom in enumerate(mol_cargas.GetAtoms()):
+
+                    ax_p.text(
+                        pos_x[i] + 0.12,
+                        pos_y[i] + 0.12,
+                        atom.GetSymbol(),
+                        color="#a0aec0",
+                        fontsize=9
+                    )
+
+                if np.any(idx_pos):
+
+                    ax_p.scatter(
+                        c_pos_x,
+                        c_pos_y,
+                        c="#ff4b4b",
+                        s=350,
+                        marker="P",
+                        label="Polo δ+"
+                    )
+
+                if np.any(idx_neg):
+
+                    ax_p.scatter(
+                        c_neg_x,
+                        c_neg_y,
+                        c="#00b4d8",
+                        s=350,
+                        marker="o",
+                        label="Polo δ-"
+                    )
+
+                if es_polar == "SÍ":
+
+                    ax_p.arrow(
+                        c_pos_x,
+                        c_pos_y,
+                        c_neg_x - c_pos_x,
+                        c_neg_y - c_pos_y,
+                        head_width=0.15,
+                        head_length=0.15,
+                        fc="#ffb703",
+                        ec="#ffb703",
+                        length_includes_head=True
+                    )
+
+                ax_p.set_title(
+                    "Mapa de polos eléctricos",
+                    color="white"
+                )
+
+                ax_p.tick_params(colors="white")
+                ax_p.axis("equal")
+
+                st.pyplot(fig_p)
+                plt.close(fig_p)
+
+                st.caption(
+                    "Representación aproximada en 2D basada en "
+                    "cargas parciales de Gasteiger. No es un "
+                    "cálculo del momento dipolar molecular 3D."
+                )
+
+            # --------------------------------------------------
+            # SOLUBILIDAD
+            # --------------------------------------------------
+
+            with sub_quimica[3]:
+
+                st.subheader(
+                    "💧 Análisis orientativo de lipofilicidad"
+                )
+
+                _, _, _, logp_val, _ = (
+                    quimica.calcular_propiedades_fisicas(mol_activa)
+                )
+
+                if logp_val < 0:
+
+                    perfil_quimico = "Relativamente hidrofílico"
+                    desc_solubilidad = (
+                        "El descriptor LogP sugiere mayor afinidad "
+                        "relativa por medios acuosos."
+                    )
+
+                elif logp_val <= 3:
+
+                    perfil_quimico = "Lipofilicidad intermedia"
+                    desc_solubilidad = (
+                        "Presenta un valor intermedio de LogP."
+                    )
+
+                else:
+
+                    perfil_quimico = "Relativamente lipofílico"
+                    desc_solubilidad = (
+                        "El descriptor LogP sugiere mayor afinidad "
+                        "relativa por medios orgánicos."
+                    )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    st.metric(
+                        "Descriptor LogP",
+                        f"{logp_val:.3f}"
+                    )
+
+                    st.write(f"**Perfil:** {perfil_quimico}")
+                    st.write(desc_solubilidad)
+
+                with col2:
+
+                    fig_s, ax_s = plt.subplots(figsize=(6, 2))
+
+                    fig_s.patch.set_facecolor("#0e1117")
+                    ax_s.set_facecolor("#1e1e1e")
+
+                    ax_s.axvspan(-3, 0, alpha=0.3, label="Hidrofílico")
+                    ax_s.axvspan(0, 3, alpha=0.15, label="Moderado")
+                    ax_s.axvspan(3, 6, alpha=0.3, label="Lipofílico")
+
+                    ax_s.axvline(
+                        x=logp_val,
+                        color="#ff4b4b",
+                        linewidth=3,
+                        linestyle="--"
+                    )
+
+                    ax_s.set_xlim(-3, 6)
+                    ax_s.set_xlabel("Escala LogP", color="white")
+                    ax_s.get_yaxis().set_visible(False)
+                    ax_s.tick_params(colors="white")
+
+                    st.pyplot(fig_s)
+                    plt.close(fig_s)
+
+                st.info(
+                    "LogP no permite calcular porcentajes reales "
+                    "de solubilidad. Para ello se necesitan datos "
+                    "experimentales o modelos específicos."
+                )
+
+            # --------------------------------------------------
+            # REACCIONES
+            # --------------------------------------------------
+
+            with sub_quimica[4]:
+
+                st.subheader("⚗️ Representación de reacciones químicas")
+
+                tipo_reaccion = st.selectbox(
+                    "Elige una reacción:",
+                    [
+                        "Combustión completa (con O₂)",
+                        "Hidrogenación catalítica"
+                    ]
+                )
+
+                if st.button(
+                    "Mostrar representación",
+                    key="btn_reaccion"
+                ):
+
+                    if tipo_reaccion == "Combustión completa (con O₂)":
+
+                        st.success("Representación conceptual")
 
                         st.write(
-                            "**Lipinski:**",
-                            "Cumple" if lipinski["cumple"]
-                            else "No cumple todos los criterios"
-                        )
-
-                        st.write(
-                            "Incumplimientos:",
-                            lipinski["incumplimientos"]
-                        )
-
-                        st.write(
-                            "**Veber:**",
-                            "Cumple" if veber["cumple"]
-                            else "No cumple todos los criterios"
-                        )
-
-                        st.markdown("### Interpretación")
-
-                        st.write(
-                            resultado_adme["interpretacion"]["polaridad"]
-                        )
-                        st.write(
-                            resultado_adme["interpretacion"]["lipofilicidad"]
-                        )
-
-                        with st.expander("Ver criterios y limitaciones"):
-                            st.json(lipinski["criterios"])
-                            st.json(veber["criterios"])
-
-                            for limitacion in resultado_adme["limitaciones"]:
-                                st.write("•", limitacion)
-
-                        st.caption(
-                            "Análisis fisicoquímico educativo. "
-                            "No constituye una predicción clínica "
-                            "de absorción, distribución, metabolismo, "
-                            "excreción o seguridad."
+                            "Productos generales: CO₂ + H₂O"
                         )
 
                     else:
-                        st.error(resultado_adme["mensaje"])
 
-                except (ValueError, TypeError, KeyError) as e:
-                    st.error(f"Error en el análisis ADME: {e}")
+                        st.info(
+                            "La hidrogenación es una reacción "
+                            "de adición de hidrógeno a enlaces "
+                            "insaturados. Esta versión no simula "
+                            "la transformación molecular."
+                        )
 
-except Exception as e:
-    st.error(f"Error general en el renderizado de la interfaz: {e}")
+            # --------------------------------------------------
+            # ESTEQUIOMETRÍA
+            # --------------------------------------------------
+
+            with sub_quimica[5]:
+
+                st.subheader("⚖️ Calculadora de estequiometría")
+
+                masa_molecular = rdMolDescriptors.CalcExactMolWt(
+                    mol_with_hs
+                )
+
+                gramos = st.number_input(
+                    "Masa en gramos (g):",
+                    min_value=0.01,
+                    value=10.0,
+                    step=0.1
+                )
+
+                moles = gramos / masa_molecular
+
+                st.metric(
+                    "Cantidad de sustancia",
+                    f"{moles:.4f} mol"
+                )
+
+    except Exception as e:
+
+        st.error(
+            f"Error en el laboratorio de química: {e}"
+        )
+
+
+# ==========================================================
+# 2. LABORATORIO DE COMPUTACIÓN CUÁNTICA
+# ==========================================================
+
+with tab_cuantica:
+
+    st.header("⚛️ Computación Cuántica")
+
+    st.write(
+        "Constructor visual de circuitos cuánticos utilizando Qiskit."
+    )
+
+    num_qubits = st.sidebar.slider(
+        "Número de cúbits:",
+        min_value=1,
+        max_value=5,
+        value=3
+    )
+
+    st.sidebar.subheader("Añadir compuertas")
+
+    agregar_h = st.sidebar.checkbox(
+        "Añadir compuertas Hadamard (H)"
+    )
+
+    agregar_x = st.sidebar.checkbox(
+        "Añadir compuertas Pauli-X"
+    )
+
+    agregar_cnot = st.sidebar.checkbox(
+        "Añadir compuerta CNOT",
+        disabled=(num_qubits < 2)
+    )
+
+    agregar_mediciones = st.sidebar.checkbox(
+        "Añadir mediciones"
+    )
+
+    qc = QuantumCircuit(num_qubits)
+
+    if agregar_h:
+
+        qubits_h = st.sidebar.multiselect(
+            "Cúbits para H:",
+            list(range(num_qubits)),
+            default=[0]
+        )
+
+        for q in qubits_h:
+            qc.h(q)
+
+    if agregar_x:
+
+        qubits_x = st.sidebar.multiselect(
+            "Cúbits para X:",
+            list(range(num_qubits))
+        )
+
+        for q in qubits_x:
+            qc.x(q)
+
+    if agregar_cnot and num_qubits > 1:
+
+        control = st.sidebar.selectbox(
+            "Cúbit de control:",
+            list(range(num_qubits))
+        )
+
+        objetivos = [
+            q for q in range(num_qubits)
+            if q != control
+        ]
+
+        target = st.sidebar.selectbox(
+            "Cúbit objetivo:",
+            objetivos
+        )
+
+        qc.cx(control, target)
+
+    if agregar_mediciones:
+        qc.measure_all()
+
+    st.subheader("Circuito resultante")
+
+    try:
+
+        fig = qc.draw(
+            output="mpl",
+            style="iqp"
+        )
+
+        st.pyplot(fig)
+        plt.close(fig)
+
+    except Exception as e:
+
+        st.error(
+            f"Error al dibujar el circuito: {e}"
+        )
+
+        st.info(
+            "Comprueba las dependencias de visualización "
+            "de Qiskit."
+        )
+
+    st.divider()
+
+    st.info(
+        "Esta herramienta construye y visualiza circuitos. "
+        "Todavía no ejecuta simulaciones cuánticas."
+    )
+
+
+# ==========================================================
+# 3. LABORATORIO DE BIOLOGÍA COMPUTACIONAL
+# ==========================================================
+
+with tab_biologia:
+
+    st.header("🧬 BioChem Analyzer")
+
+    st.write(
+        "Evaluación computacional y documental "
+        "de propiedades biológicas moleculares."
+    )
+
+    # ------------------------------------------------------
+    # IDENTIFICACIÓN MOLECULAR
+    # ------------------------------------------------------
+
+    st.subheader("🔬 Identificación química")
+
+    if st.button("Identificar molécula", key="btn_identificar"):
+
+        try:
+
+            datos = identificar_molecula(smiles_input)
+
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric(
+                "Fórmula",
+                datos["formula"]
+            )
+
+            col2.metric(
+                "Peso molecular",
+                f'{datos["peso_molecular"]:.3f} g/mol'
+            )
+
+            col3.metric(
+                "Átomos",
+                datos["atomos"]
+            )
+
+            with st.expander("Ver información completa"):
+
+                st.json(datos)
+
+            st.info(
+                "La identificación química no implica "
+                "una evaluación de seguridad biológica."
+            )
+
+        except (ValueError, TypeError, KeyError) as e:
+
+            st.error(
+                f"Error en la identificación: {e}"
+            )
+
+    st.divider()
+
+    # ------------------------------------------------------
+    # ADME
+    # ------------------------------------------------------
+
+    st.subheader("🧪 Análisis ADME")
+
+    if st.button("Ejecutar análisis ADME", key="btn_adme"):
+
+        try:
+
+            resultado_adme = analizar_adme(smiles_input)
+
+            if resultado_adme["estado"] == "correcto":
+
+                propiedades = resultado_adme["propiedades"]
+
+                st.markdown("### Propiedades moleculares")
+
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric(
+                    "Peso molecular",
+                    propiedades["peso_molecular"]
+                )
+
+                col2.metric(
+                    "LogP",
+                    propiedades["logp"]
+                )
+
+                col3.metric(
+                    "TPSA",
+                    propiedades["tpsa"]
+                )
+
+                col4, col5, col6 = st.columns(3)
+
+                col4.metric(
+                    "Donadores H",
+                    propiedades["donadores_h"]
+                )
+
+                col5.metric(
+                    "Aceptores H",
+                    propiedades["aceptores_h"]
+                )
+
+                col6.metric(
+                    "Enlaces rotables",
+                    propiedades["enlaces_rotables"]
+                )
+
+                st.divider()
+
+                st.markdown("### Evaluación de reglas")
+
+                lipinski = resultado_adme["lipinski"]
+                veber = resultado_adme["veber"]
+
+                st.write(
+                    "**Lipinski:**",
+                    "Cumple" if lipinski["cumple"]
+                    else "No cumple todos los criterios"
+                )
+
+                st.write(
+                    "Incumplimientos:",
+                    lipinski["incumplimientos"]
+                )
+
+                st.write(
+                    "**Veber:**",
+                    "Cumple" if veber["cumple"]
+                    else "No cumple todos los criterios"
+                )
+
+                st.divider()
+
+                st.markdown("### Interpretación")
+
+                st.write(
+                    resultado_adme["interpretacion"]["polaridad"]
+                )
+
+                st.write(
+                    resultado_adme["interpretacion"]["lipofilicidad"]
+                )
+
+                with st.expander("Ver criterios y limitaciones"):
+
+                    st.write("Criterios de Lipinski")
+                    st.json(lipinski["criterios"])
+
+                    st.write("Criterios de Veber")
+                    st.json(veber["criterios"])
+
+                    for limitacion in resultado_adme["limitaciones"]:
+                        st.write("•", limitacion)
+
+                st.caption(
+                    "Análisis fisicoquímico educativo. "
+                    "No constituye una predicción clínica "
+                    "de absorción, distribución, metabolismo, "
+                    "excreción o seguridad."
+                )
+
+            else:
+
+                st.error(resultado_adme["mensaje"])
+
+        except (ValueError, TypeError, KeyError) as e:
+
+            st.error(
+                f"Error en el análisis ADME: {e}"
+            )
+
+    st.divider()
+
+    # Próximos módulos
+    st.subheader("Próximos módulos")
+
+    st.write("🔬 Toxicología computacional — En desarrollo")
+    st.write("🎯 Bioactividad molecular — En desarrollo")
+    st.write("📚 Literatura científica — En desarrollo")
+    st.write("📄 Generación de reportes — En desarrollo")
+
+
+# ==========================================================
+# PIE DE PÁGINA
+# ==========================================================
+
+st.sidebar.divider()
+
+st.sidebar.caption(
+    "QuantumChemLabs | Plataforma educativa de química "
+    "y ciencias computacionales."
+)
+#Codigo mejorado y completo

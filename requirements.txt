@@ -4,4 +4,4 @@ numpy<2.0.0
 matplotlib
 qiskit>=1.0.0
 pylatexenc
-
+biochem.identificacion

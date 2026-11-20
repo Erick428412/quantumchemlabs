@@ -72,19 +72,12 @@ st.markdown("""
         </style>
 
         <div class="kagaku-header">
-            <span class="kagaku-badge-icon">⚗️</span>
             <h1 class="kagaku-title-text">スタジオ化学 | STUDIO KAGAKU</h1>
         </div>
         """, unsafe_allow_html=True)
 #-------------------------------
 # FIN DE LA ANIMACION
 #-------------------------------
-
-st.write(
-    "Plataforma de análisis químico, computación cuántica "
-    "y biología computacional."
-)
-
 
 # ==========================================================
 # FUNCIONES AUXILIARES
@@ -140,99 +133,102 @@ tab_general, tab_quimica, tab_cuantica, tab_biologia = st.tabs([
 # 0. INFORMACION GENERAL
 #-----------------------------------
 
-st.header("Información General")
+with tab_general:
+    st.header("Información General")
 
-num_pares = 25
+    num_pares = 25
 
-# Generamos los nodos sin espacios al inicio de cada línea
-nodos_html = "".join([
-    f'<div class="par-base" style="--delay: {-round(i * 0.15, 2)}s;">'
-    '<div class="hebra hebra-1"></div>'
-    '<div class="enlace"></div>'
-    '<div class="hebra hebra-2"></div>'
-    "</div>"
-    for i in range(num_pares)
-])
+    # Generamos los nodos sin espacios al inicio de cada línea
+    nodos_html = "".join([
+        f'<div class="par-base" style="--delay: {-round(i * 0.15, 2)}s;">'
+        '<div class="hebra hebra-1"></div>'
+        '<div class="enlace"></div>'
+        '<div class="hebra hebra-2"></div>'
+        "</div>"
+        for i in range(num_pares)
+    ])
 
-# CSS sin sangría
-css_adn = """
-<style>
-.columna-adn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px 0;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.par-base {
-    position: relative;
-    width: 140px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.hebra {
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-}
-.hebra-1 {
-    background: #00E5FF;
-    box-shadow: 0 0 10px #00E5FF;
-    animation: moverHebra1 3s ease-in-out infinite;
-    animation-delay: var(--delay);
-}
-.hebra-2 {
-    background: #FF2A85;
-    box-shadow: 0 0 10px #FF2A85;
-    animation: moverHebra2 3s ease-in-out infinite;
-    animation-delay: var(--delay);
-}
-.enlace {
-    height: 2px;
-    background: linear-gradient(90deg, #00E5FF, #FF2A85);
-    opacity: 0.4;
-    animation: escalaEnlace 3s ease-in-out infinite;
-    animation-delay: var(--delay);
-}
-@keyframes moverHebra1 {
-    0%, 100% { transform: translateX(-55px) scale(1); z-index: 2; }
-    25% { transform: translateX(0px) scale(1.3); z-index: 3; }
-    50% { transform: translateX(55px) scale(1); z-index: 2; }
-    75% { transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }
-}
-@keyframes moverHebra2 {
-    0%, 100% { transform: translateX(55px) scale(1); z-index: 2; }
-    25% { transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }
-    50% { transform: translateX(-55px) scale(1); z-index: 2; }
-    75% { transform: translateX(0px) scale(1.3); z-index: 3; }
-}
-@keyframes escalaEnlace {
-    0%, 50%, 100% { width: 110px; opacity: 0.5; }
-    25%, 75% { width: 0px; opacity: 0; }
-}
-</style>
-"""
+    # CSS sin sangría
+    css_adn = """
+    <style>
+    .columna-adn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .par-base {
+        position: relative;
+        width: 140px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .hebra {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+    }
+    .hebra-1 {
+        background: #00E5FF;
+        box-shadow: 0 0 10px #00E5FF;
+        animation: moverHebra1 3s ease-in-out infinite;
+        animation-delay: var(--delay);
+    }
+    .hebra-2 {
+        background: #FF2A85;
+        box-shadow: 0 0 10px #FF2A85;
+        animation: moverHebra2 3s ease-in-out infinite;
+        animation-delay: var(--delay);
+    }
+    .enlace {
+        height: 2px;
+        background: linear-gradient(90deg, #00E5FF, #FF2A85);
+        opacity: 0.4;
+        animation: escalaEnlace 3s ease-in-out infinite;
+        animation-delay: var(--delay);
+    }
+    @keyframes moverHebra1 {
+        0%, 100% { transform: translateX(-55px) scale(1); z-index: 2; }
+        25% { transform: translateX(0px) scale(1.3); z-index: 3; }
+        50% { transform: translateX(55px) scale(1); z-index: 2; }
+        75% { transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }
+    }
+    @keyframes moverHebra2 {
+        0%, 100% { transform: translateX(55px) scale(1); z-index: 2; }
+        25% { transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }
+        50% { transform: translateX(-55px) scale(1); z-index: 2; }
+        75% { transform: translateX(0px) scale(1.3); z-index: 3; }
+    }
+    @keyframes escalaEnlace {
+        0%, 50%, 100% { width: 110px; opacity: 0.5; }
+        25%, 75% { width: 0px; opacity: 0; }
+    }
+    </style>
+    """
 
-# Dividimos en dos columnas: ADN a la izquierda y texto a la derecha
-col_adn, col_texto = st.columns([1, 3], gap="large")
+    # Dividimos en dos columnas: ADN a la izquierda y texto a la derecha
+    col_adn, col_texto = st.columns([1, 3], gap="large")
 
-with col_adn:
-  st.markdown(
-      f'{css_adn}<div class="columna-adn">{nodos_html}</div>',
-      unsafe_allow_html=True,
-  )
+    with col_adn:
+      st.markdown(
+          f'{css_adn}<div class="columna-adn">{nodos_html}</div>',
+          unsafe_allow_html=True,
+      )
 
-with col_texto:
-  st.subheader("Simulación Molecular y Cuántica")
-  st.write(
-      "Aquí puedes escribir toda la descripción de tu molécula SMILES, "
-      "el circuito cuántico o mostrar métricas y resultados."
-  )
+    with col_texto:
+      st.subheader("Studio Kagaku")
+      st.write(
+          "Es una plataforma de análisis químico, computación cuántica" 
+        "y biología computacional hecha para la experimentacion y analisis"
+        "con fines educativos."
+        "Hecho por Erick Lopez"
+      )
 
 # ==========================================================
 # 1. LABORATORIO DE QUÍMICA

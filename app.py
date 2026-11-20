@@ -290,6 +290,72 @@ try:
                         "Por favor revise los resultados antes de"
                         "cualquier procedimiento."
                     )
+                    st.divider()
+                    st.subheader("🧪 Análisis ADME")
+
+                    if st.button("Ejecutar análisis ADME"):
+                        resultado_adme = analizar_adme(smiles_input)
+
+                        if resultado_adme["estado"] == "correcto":
+                            propiedades = resultado_adme["propiedades"]
+
+                            st.markdown("### Propiedades moleculares")
+
+                            col1, col2, col3 = st.columns(3)
+
+                            col1.metric(
+                                "Peso molecular",
+                                propiedades["peso_molecular"]
+                            )
+                            col2.metric(
+                                "LogP",
+                                propiedades["logp"]
+                            )
+                            col3.metric(
+                                "TPSA",
+                                propiedades["tpsa"]
+                            )
+
+                            col4, col5, col6 = st.columns(3)
+
+                            col4.metric("Donadores H", propiedades["donadores_h"])
+                            col5.metric("Aceptores H", propiedades["aceptores_h"])
+                            col6.metric("Enlaces rotables", propiedades["enlaces_rotables"])
+
+                            st.markdown("### Evaluación de reglas")
+
+                            lipinski = resultado_adme["lipinski"]
+                            veber = resultado_adme["veber"]
+
+                            st.write(
+                                "**Lipinski:**",
+                                "Cumple" if lipinski["cumple"] else "No cumple todos los criterios"
+                            )
+
+                            st.write(
+                                "Incumplimientos:",
+                                lipinski["incumplimientos"]
+                            )
+
+                            st.write(
+                                "**Veber:**",
+                                "Cumple" if veber["cumple"] else "No cumple todos los criterios"
+                            )
+
+                            st.markdown("### Interpretación")
+
+                            st.write(resultado_adme["interpretacion"]["polaridad"])
+                            st.write(resultado_adme["interpretacion"]["lipofilicidad"])
+
+                            with st.expander("Ver criterios y limitaciones"):
+                                st.json(resultado_adme["lipinski"]["criterios"])
+                                st.json(resultado_adme["veber"]["criterios"])
+
+                            for limitacion in resultado_adme["limitaciones"]:
+                                st.write("•", limitacion)
+
+                            else:
+                                st.error(resultado_adme["mensaje"])
 
                 except ValueError as e:
                     st.error(str(e))

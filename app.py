@@ -267,97 +267,121 @@ try:
                 "de propiedades biológicas moleculares."
             )
 
+            # Identificación molecular
+            st.subheader("Identificación química")
+
             if st.button("Identificar molécula"):
                 try:
                     datos = identificar_molecula(smiles_input)
-
-                    st.subheader("Identificación química")
 
                     col1, col2, col3 = st.columns(3)
 
                     col1.metric("Fórmula", datos["formula"])
                     col2.metric(
                         "Peso molecular",
-                    f'{datos["peso_molecular"]:.3f} g/mol'
+                        f'{datos["peso_molecular"]:.3f} g/mol'
                     )
                     col3.metric("Átomos", datos["atomos"])
 
                     st.json(datos)
 
                     st.info(
-                        "La identificación química no implica "
-                        "una evaluación de seguridad biológica."
-                        "Por favor revise los resultados antes de"
-                        "cualquier procedimiento."
+                        "La identificación química no implica una "
+                        "evaluación de seguridad biológica."
                     )
-                    st.divider()
-                    st.subheader("🧪 Análisis ADME")
 
-                    if st.button("Ejecutar análisis ADME"):
-                        resultado_adme = analizar_adme(smiles_input)
+                except (ValueError, TypeError, KeyError) as e:
+                    st.error(f"Error en la identificación: {e}")
 
-                        if resultado_adme["estado"] == "correcto":
-                            propiedades = resultado_adme["propiedades"]
+            st.divider()
 
-                            st.markdown("### Propiedades moleculares")
+            # Análisis ADME
+            st.subheader("🧪 Análisis ADME")
 
-                            col1, col2, col3 = st.columns(3)
+            if st.button("Ejecutar análisis ADME"):
+                try:
+                    resultado_adme = analizar_adme(smiles_input)
 
-                            col1.metric(
-                                "Peso molecular",
-                                propiedades["peso_molecular"]
-                            )
-                            col2.metric(
-                                "LogP",
-                                propiedades["logp"]
-                            )
-                            col3.metric(
-                                "TPSA",
-                                propiedades["tpsa"]
-                            )
+                    if resultado_adme["estado"] == "correcto":
 
-                            col4, col5, col6 = st.columns(3)
+                        propiedades = resultado_adme["propiedades"]
 
-                            col4.metric("Donadores H", propiedades["donadores_h"])
-                            col5.metric("Aceptores H", propiedades["aceptores_h"])
-                            col6.metric("Enlaces rotables", propiedades["enlaces_rotables"])
+                        st.markdown("### Propiedades moleculares")
 
-                            st.markdown("### Evaluación de reglas")
+                        col1, col2, col3 = st.columns(3)
 
-                            lipinski = resultado_adme["lipinski"]
-                            veber = resultado_adme["veber"]
+                        col1.metric(
+                            "Peso molecular",
+                            propiedades["peso_molecular"]
+                        )
+                        col2.metric("LogP", propiedades["logp"])
+                        col3.metric("TPSA", propiedades["tpsa"])
 
-                            st.write(
-                                "**Lipinski:**",
-                                "Cumple" if lipinski["cumple"] else "No cumple todos los criterios"
-                            )
+                        col4, col5, col6 = st.columns(3)
 
-                            st.write(
-                                "Incumplimientos:",
-                                lipinski["incumplimientos"]
-                            )
+                        col4.metric(
+                            "Donadores H",
+                            propiedades["donadores_h"]
+                        )
+                        col5.metric(
+                            "Aceptores H",
+                            propiedades["aceptores_h"]
+                        )
+                        col6.metric(
+                            "Enlaces rotables",
+                            propiedades["enlaces_rotables"]
+                        )
 
-                            st.write(
-                                "**Veber:**",
-                                "Cumple" if veber["cumple"] else "No cumple todos los criterios"
-                            )
+                        st.markdown("### Evaluación de reglas")
 
-                            st.markdown("### Interpretación")
+                        lipinski = resultado_adme["lipinski"]
+                        veber = resultado_adme["veber"]
 
-                            st.write(resultado_adme["interpretacion"]["polaridad"])
-                            st.write(resultado_adme["interpretacion"]["lipofilicidad"])
+                        st.write(
+                            "**Lipinski:**",
+                            "Cumple" if lipinski["cumple"]
+                            else "No cumple todos los criterios"
+                        )
 
-                            with st.expander("Ver criterios y limitaciones"):
-                                st.json(resultado_adme["lipinski"]["criterios"])
-                                st.json(resultado_adme["veber"]["criterios"])
+                        st.write(
+                            "Incumplimientos:",
+                            lipinski["incumplimientos"]
+                        )
+
+                        st.write(
+                            "**Veber:**",
+                            "Cumple" if veber["cumple"]
+                            else "No cumple todos los criterios"
+                        )
+
+                        st.markdown("### Interpretación")
+
+                        st.write(
+                            resultado_adme["interpretacion"]["polaridad"]
+                        )
+                        st.write(
+                            resultado_adme["interpretacion"]["lipofilicidad"]
+                        )
+
+                        with st.expander("Ver criterios y limitaciones"):
+                            st.json(lipinski["criterios"])
+                            st.json(veber["criterios"])
 
                             for limitacion in resultado_adme["limitaciones"]:
                                 st.write("•", limitacion)
 
-                            else:
-                                st.error(resultado_adme["mensaje"])
+                        st.caption(
+                            "Análisis fisicoquímico educativo. "
+                            "No constituye una predicción clínica "
+                            "de absorción, distribución, metabolismo, "
+                            "excreción o seguridad."
+                        )
 
-                except ValueError as e:
-                    st.error(str(e))
+                    else:
+                        st.error(resultado_adme["mensaje"])
+
+                except (ValueError, TypeError, KeyError) as e:
+                    st.error(f"Error en el análisis ADME: {e}")
+
 except Exception as e:
     st.error(f"Error general en el renderizado de la interfaz: {e}")

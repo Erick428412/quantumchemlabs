@@ -5,14 +5,18 @@ from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
 
 def analizar_adme(smiles):
     """
-    Analiza descriptores moleculares relacionados con ADME.
+    Calcula descriptores moleculares y evalúa criterios
+    orientativos de Lipinski y Veber.
 
-    Importante:
-    Los resultados son indicadores fisicoquímicos.
-    No representan mediciones experimentales ni predicciones clínicas.
+    No predice directamente absorción, distribución,
+    metabolismo, excreción ni seguridad clínica.
     """
 
-    mol = Chem.MolFromSmiles(smiles)
+    # Validar SMILES
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+    except Exception:
+        mol = None
 
     if mol is None:
         return {
@@ -24,8 +28,11 @@ def analizar_adme(smiles):
     peso_molecular = Descriptors.MolWt(mol)
     logp = Crippen.MolLogP(mol)
     tpsa = rdMolDescriptors.CalcTPSA(mol)
-    donadores_h = rdMolDescriptors.CalcNumHBD(mol)
-    aceptores_h = rdMolDescriptors.CalcNumHBA(mol)
+
+    # Descriptores específicos de Lipinski
+    donadores_h = rdMolDescriptors.CalcNumLipinskiHBD(mol)
+    aceptores_h = rdMolDescriptors.CalcNumLipinskiHBA(mol)
+
     enlaces_rotables = rdMolDescriptors.CalcNumRotatableBonds(mol)
 
     # Regla de Lipinski
@@ -40,7 +47,10 @@ def analizar_adme(smiles):
         not cumple for cumple in criterios_lipinski.values()
     )
 
-    # Criterios de Veber
+    # Se informa el cumplimiento estricto de los cuatro criterios
+    cumple_lipinski = incumplimientos == 0
+
+    # Regla de Veber
     criterios_veber = {
         "enlaces_rotables": enlaces_rotables <= 10,
         "tpsa": tpsa <= 140
@@ -48,27 +58,22 @@ def analizar_adme(smiles):
 
     cumple_veber = all(criterios_veber.values())
 
-    # Interpretación descriptiva de propiedades
+    # Interpretación de TPSA
     if tpsa <= 90:
-        interpretacion_tpsa = (
-            "Área polar relativamente baja."
-        )
+        interpretacion_tpsa = "Área polar relativamente baja."
     elif tpsa <= 140:
-        interpretacion_tpsa = (
-            "Área polar intermedia."
-        )
+        interpretacion_tpsa = "Área polar intermedia."
     else:
-        interpretacion_tpsa = (
-            "Área polar elevada."
-        )
+        interpretacion_tpsa = "Área polar elevada."
 
+    # Interpretación de LogP
     if logp < 0:
         interpretacion_logp = (
-            "Predominio de características hidrofílicas."
+            "Predominio de afinidad por la fase acuosa."
         )
     elif logp <= 5:
         interpretacion_logp = (
-            "Lipofilicidad dentro del intervalo de referencia de Lipinski."
+            "Lipofilicidad dentro del límite de referencia de Lipinski."
         )
     else:
         interpretacion_logp = (
@@ -90,8 +95,8 @@ def analizar_adme(smiles):
 
         "lipinski": {
             "criterios": criterios_lipinski,
-            "incumplimientos": incumplimientos,
-            "cumple": incumplimientos == 0
+            "incumplimientos": int(incumplimientos),
+            "cumple": cumple_lipinski
         },
 
         "veber": {
@@ -105,11 +110,13 @@ def analizar_adme(smiles):
         },
 
         "limitaciones": [
-            "Los descriptores no miden absorción real.",
+            "Los descriptores son estimaciones computacionales.",
+            "LogP no equivale directamente a solubilidad.",
             "Lipinski y Veber son reglas orientativas.",
-            "No se calculan concentraciones en sangre.",
-            "No se predicen dosis ni seguridad clínica.",
-            "Metabolismo y excreción requieren modelos y datos adicionales."
+            "Cumplir las reglas no demuestra absorción real.",
+            "No se predicen concentraciones en sangre ni dosis.",
+            "No se evalúa seguridad clínica.",
+            "No se modelan directamente metabolismo ni excreción."
         ]
     }
 

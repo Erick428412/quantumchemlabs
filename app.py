@@ -1,3 +1,4 @@
+from biochem.identificacion import identificar_molecula
 import streamlit as st
 import streamlit.components.v1 as components
 from rdkit import Chem
@@ -57,14 +58,15 @@ try:
         st.markdown("---")
         
         # Creación y mapeo de pestañas
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
             "📊 Información e Isomería", 
             "🌡️ Propiedades Físicas y Viscosidad",
             "🧭 Polaridad y Polos",
             "💧 Solubilidad y Solventes",
             "⚗️ Simulador de Reacciones", 
             "⚖️ Estequiometría",
-            "🧲 Cuantica"
+            "🧲 Cuantica",
+            "🧬 BioChem Analyzer"
         ])
         
         # --- PESTAÑA 1: INFORMACIÓN E ISOMERÍA ---
@@ -256,5 +258,39 @@ try:
                     st.info("Asegúrate de tener instalado el paquete de visualización: `pip install qiskit[visualization]`")  
             with col2:
                 st.write("Software creado por Erick Lopez")
+        with tab8:
+            st.header("🧬 BioChem Analyzer")
+
+            st.write(
+                "Evaluación computacional y documental "
+                "de propiedades biológicas moleculares."
+            )
+
+            if st.button("Identificar molécula"):
+                try:
+                    datos = identificar_molecula(smiles_input)
+
+                    st.subheader("Identificación química")
+
+                    col1, col2, col3 = st.columns(3)
+
+                    col1.metric("Fórmula", datos["formula"])
+                    col2.metric(
+                        "Peso molecular",
+                    f'{datos["peso_molecular"]:.3f} g/mol'
+                    )
+                    col3.metric("Átomos", datos["atomos"])
+
+                    st.json(datos)
+
+                    st.info(
+                        "La identificación química no implica "
+                        "una evaluación de seguridad biológica."
+                        "Por favor revise los resultados antes de"
+                        "cualquier procedimiento."
+                    )
+
+        except ValueError as e:
+            st.error(str(e))
 except Exception as e:
     st.error(f"Error general en el renderizado de la interfaz: {e}")

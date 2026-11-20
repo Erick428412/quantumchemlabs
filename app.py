@@ -290,7 +290,7 @@ try:
                         "cualquier procedimiento."
                     )
 
-        except ValueError as e:
-            st.error(str(e))
+                except ValueError as e:
+                    st.error(str(e))
 except Exception as e:
     st.error(f"Error general en el renderizado de la interfaz: {e}")

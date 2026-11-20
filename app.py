@@ -1,4 +1,5 @@
 from biochem.identificacion import identificar_molecula
+from biochem.adme import analizar_adme
 import streamlit as st
 import streamlit.components.v1 as components
 from rdkit import Chem

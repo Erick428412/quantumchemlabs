@@ -21,7 +21,9 @@ st.set_page_config(
     page_icon="🧪",
     layout="wide"
 )
-
+#-----------------------------
+# ANIMACION DEL TITULO
+#-----------------------------
 st.markdown("""
         <style>
         @import url('https://googleapis.com');
@@ -74,6 +76,9 @@ st.markdown("""
             <h1 class="kagaku-title-text">スタジオ化学 | STUDIO KAGAKU</h1>
         </div>
         """, unsafe_allow_html=True)
+#-------------------------------
+# FIN DE LA ANIMACION
+#-------------------------------
 
 st.write(
     "Plataforma de análisis químico, computación cuántica "
@@ -125,7 +130,7 @@ smiles_input = st.sidebar.text_input(
 # ==========================================================
 
 tab_general, tab_quimica, tab_cuantica, tab_biologia = st.tabs([
-    "Informacion"
+    "📚Informacion",
     "🧪 Química",
     "⚛️ Cuántica",
     "🧬 Biología"

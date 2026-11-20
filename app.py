@@ -140,160 +140,99 @@ tab_general, tab_quimica, tab_cuantica, tab_biologia = st.tabs([
 # 0. INFORMACION GENERAL
 #-----------------------------------
 
-st.header("Informacion General")
-num_pares = 28
+st.header("Información General")
 
-# Generamos los nodos dinámicamente con sus retrasos de animación (delay)
-nodos_html = ""
-for i in range(num_pares):
-  delay = -round(i * 0.15, 2)
-  nodos_html += f"""
-    <div class="par-base" style="--delay: {delay}s;">
-        <div class="hebra hebra-1"></div>
-        <div class="enlace"></div>
-        <div class="hebra hebra-2"></div>
-    </div>
-    """
+num_pares = 25
 
-# HTML y CSS completo
-html_code = f"""
+# Generamos los nodos sin espacios al inicio de cada línea
+nodos_html = "".join([
+    f'<div class="par-base" style="--delay: {-round(i * 0.15, 2)}s;">'
+    '<div class="hebra hebra-1"></div>'
+    '<div class="enlace"></div>'
+    '<div class="hebra hebra-2"></div>'
+    "</div>"
+    for i in range(num_pares)
+])
+
+# CSS sin sangría
+css_adn = """
 <style>
-    /* Contenedor principal de dos columnas */
-    .contenedor-principal {{
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 40px;
-        font-family: 'Source Sans Pro', sans-serif;
-        padding: 20px;
-    }}
-
-    /* Columna izquierda: ADN */
-    .columna-adn {{
-        flex: 0 0 180px; /* Ancho fijo para el ADN */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px 0;
-        background: rgba(14, 17, 23, 0.4);
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }}
-
-    /* Columna derecha: Texto */
-    .columna-texto {{
-        flex: 1; /* Ocupa todo el espacio restante a la derecha */
-        color: #FAFAFA;
-    }}
-
-    .columna-texto h2 {{
-        color: #00E5FF;
-        margin-top: 0;
-    }}
-
-    /* Fila de cada par de bases */
-    .par-base {{
-        position: relative;
-        width: 140px;
-        height: 22px; /* Separación vertical entre nodos */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }}
-
-    /* Esferas de las hebras */
-    .hebra {{
-        position: absolute;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-    }}
-
-    .hebra-1 {{
-        background: #00E5FF;
-        box-shadow: 0 0 10px #00E5FF;
-        animation: moverHebra1 3s ease-in-out infinite;
-        animation-delay: var(--delay);
-    }}
-
-    .hebra-2 {{
-        background: #FF2A85;
-        box-shadow: 0 0 10px #FF2A85;
-        animation: moverHebra2 3s ease-in-out infinite;
-        animation-delay: var(--delay);
-    }}
-
-    /* Línea conectora (puente de hidrógeno) */
-    .enlace {{
-        height: 2px;
-        background: linear-gradient(90deg, #00E5FF, #FF2A85);
-        opacity: 0.4;
-        animation: escalaEnlace 3s ease-in-out infinite;
-        animation-delay: var(--delay);
-    }}
-
-    /* Animaciones de rotación 3D simulada */
-    @keyframes moverHebra1 {{
-        0%, 100% {{ transform: translateX(-55px) scale(1); z-index: 2; }}
-        25% {{ transform: translateX(0px) scale(1.3); z-index: 3; }}
-        50% {{ transform: translateX(55px) scale(1); z-index: 2; }}
-        75% {{ transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }}
-    }}
-
-    @keyframes moverHebra2 {{
-        0%, 100% {{ transform: translateX(55px) scale(1); z-index: 2; }}
-        25% {{ transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }}
-        50% {{ transform: translateX(-55px) scale(1); z-index: 2; }}
-        75% {{ transform: translateX(0px) scale(1.3); z-index: 3; }}
-    }}
-
-    @keyframes escalaEnlace {{
-        0%, 50%, 100% {{ width: 110px; opacity: 0.5; }}
-        25%, 75% {{ width: 0px; opacity: 0; }}
-    }}
-
-    /* Adaptación para pantallas pequeñas (móviles) */
-    @media (max-width: 768px) {{
-        .contenedor-principal {{
-            flex-direction: column;
-            align-items: center;
-        }}
-        .columna-adn {{
-            width: 100%;
-        }}
-    }}
+.columna-adn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.par-base {
+    position: relative;
+    width: 140px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.hebra {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+}
+.hebra-1 {
+    background: #00E5FF;
+    box-shadow: 0 0 10px #00E5FF;
+    animation: moverHebra1 3s ease-in-out infinite;
+    animation-delay: var(--delay);
+}
+.hebra-2 {
+    background: #FF2A85;
+    box-shadow: 0 0 10px #FF2A85;
+    animation: moverHebra2 3s ease-in-out infinite;
+    animation-delay: var(--delay);
+}
+.enlace {
+    height: 2px;
+    background: linear-gradient(90deg, #00E5FF, #FF2A85);
+    opacity: 0.4;
+    animation: escalaEnlace 3s ease-in-out infinite;
+    animation-delay: var(--delay);
+}
+@keyframes moverHebra1 {
+    0%, 100% { transform: translateX(-55px) scale(1); z-index: 2; }
+    25% { transform: translateX(0px) scale(1.3); z-index: 3; }
+    50% { transform: translateX(55px) scale(1); z-index: 2; }
+    75% { transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }
+}
+@keyframes moverHebra2 {
+    0%, 100% { transform: translateX(55px) scale(1); z-index: 2; }
+    25% { transform: translateX(0px) scale(0.7); z-index: 1; opacity: 0.6; }
+    50% { transform: translateX(-55px) scale(1); z-index: 2; }
+    75% { transform: translateX(0px) scale(1.3); z-index: 3; }
+}
+@keyframes escalaEnlace {
+    0%, 50%, 100% { width: 110px; opacity: 0.5; }
+    25%, 75% { width: 0px; opacity: 0; }
+}
 </style>
-
-<div class="contenedor-principal">
-    <!-- Izquierda: Cadena de ADN -->
-    <div class="columna-adn">
-        {nodos_html}
-    </div>
-
-    <!-- Derecha: Contenido de texto -->
-    <div class="columna-texto">
-        <h2>Secuenciación y Análisis Genómico</h2>
-        <p>
-            Esta animación representa una doble hélice de ADN en rotación continua utilizando únicamente 
-            <strong>HTML y CSS puro</strong> inyectado en Streamlit.
-        </p>
-        <p>
-            Gracias al uso de <code>display: flex</code> en el contenedor principal, todo este bloque de 
-            información se mantiene alineado a la derecha del modelo molecular, aprovechando el ancho 
-            completo de la pantalla.
-        </p>
-        <h3>Características técnicas:</h3>
-        <ul>
-            <li><strong>Longitud ajustable:</strong> Modifica la variable <code>num_pares</code> en Python para hacer la cadena tan larga como necesites.</li>
-            <li><strong>Efecto de profundidad (3D):</strong> Se logra alternando las propiedades <code>scale()</code>, <code>opacity</code> y <code>z-index</code> en los fotogramas clave (keyframes).</li>
-            <li><strong>Diseño responsivo:</strong> En dispositivos móviles, el texto pasa automáticamente debajo del ADN para evitar que se corte.</li>
-        </ul>
-    </div>
-</div>
 """
 
-# Renderizamos en Streamlit
-st.markdown(html_code, unsafe_allow_html=True)
+# Dividimos en dos columnas: ADN a la izquierda y texto a la derecha
+col_adn, col_texto = st.columns([1, 3], gap="large")
+
+with col_adn:
+  st.markdown(
+      f'{css_adn}<div class="columna-adn">{nodos_html}</div>',
+      unsafe_allow_html=True,
+  )
+
+with col_texto:
+  st.subheader("Simulación Molecular y Cuántica")
+  st.write(
+      "Aquí puedes escribir toda la descripción de tu molécula SMILES, "
+      "el circuito cuántico o mostrar métricas y resultados."
+  )
 
 # ==========================================================
 # 1. LABORATORIO DE QUÍMICA
